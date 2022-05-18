@@ -4,7 +4,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<OrderRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 var app = builder.Build();
 
@@ -17,16 +17,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/orders", (OrderRepository repo) => repo.GetAll());
+app.MapGet("/orders", (IOrderRepository repo) => repo.GetAll());
 
-app.MapGet("/orders/{id}", (OrderRepository repo, Guid id) =>
+app.MapGet("/orders/{id}", (IOrderRepository repo, Guid id) =>
 {
     var order = repo.GetOrderById(id);
 
     return order is not null ? Results.Ok(order) : Results.NotFound();
 });
 
-app.MapPost("/oder", (OrderRepository repo, Order order) =>
+app.MapPost("/oder", (IOrderRepository repo, Order order) =>
 {
     repo.CreateOrder(order);
 
@@ -44,7 +44,15 @@ public record Order
     public string Currency { get; set; }
 }
 
-public class OrderRepository
+
+public interface IOrderRepository
+{
+    IList<Order> GetAll();
+    Order? GetOrderById(Guid id);
+    void CreateOrder(Order? order);
+}
+
+public class OrderRepository : IOrderRepository
 {
     private readonly Dictionary<Guid, Order> _orders = new();
 
